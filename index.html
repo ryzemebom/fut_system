@@ -15,7 +15,29 @@
 <body>
 <div id="toast-container"></div>
 
-<div class="app-container">
+<!-- Tela de Login Exclusiva (Arthur / 1234) -->
+<div id="login-screen" class="login-screen">
+    <div class="login-card">
+        <div class="login-logo"><i class="fa-solid fa-lock"></i></div>
+        <div class="login-title">⚽ Meu Baba PRO</div>
+        <div class="login-subtitle">Acesso Exclusivo do Organizador</div>
+        <div style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Usuário:</label>
+                <input type="text" id="login-user" class="form-input" placeholder="Digite seu usuário..." style="padding: 14px;">
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Senha:</label>
+                <input type="password" id="login-pass" class="form-input" placeholder="••••" style="padding: 14px;" onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <button class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 800; margin-top: 10px; justify-content: center;" onclick="doLogin()">
+                🚀 ENTRAR NO SISTEMA
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-container" id="main-app" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
         <div class="brand">
@@ -30,35 +52,39 @@
         
         <nav class="nav-menu">
             <a class="nav-item active" data-tab="dashboard">
-                <i class="fa-solid fa-chart-pie"></i>
-                <span>Visão Geral</span>
+                <i class="fa-solid fa-house"></i>
+                <span>Início</span>
+            </a>
+            <a class="nav-item" data-tab="agenda">
+                <i class="fa-solid fa-calendar-check" style="color: var(--primary);"></i>
+                <span>Agenda</span>
             </a>
             <a class="nav-item" data-tab="sorteio">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span>Sorteador de Times</span>
+                <i class="fa-solid fa-dice"></i>
+                <span>Sortear</span>
             </a>
             <a class="nav-item" data-tab="match">
                 <i class="fa-solid fa-stopwatch"></i>
-                <span>Placar Ao Vivo</span>
+                <span>Placar</span>
             </a>
             <a class="nav-item" data-tab="players">
-                <i class="fa-solid fa-users-rectangle"></i>
-                <span>Elenco & FUT Cards</span>
+                <i class="fa-solid fa-users"></i>
+                <span>Jogadores</span>
             </a>
             <a class="nav-item" data-tab="finance">
-                <i class="fa-solid fa-vault"></i>
-                <span>Caixa do Baba</span>
+                <i class="fa-solid fa-wallet"></i>
+                <span>Caixa</span>
             </a>
             <a class="nav-item" data-tab="ranking">
                 <i class="fa-solid fa-trophy"></i>
-                <span>Ranking & Prêmios</span>
+                <span>Artilheiros</span>
             </a>
         </nav>
         
         <div class="sidebar-footer">
-            <div class="next-game-widget">
+            <div class="next-game-widget" onclick="switchTab('agenda')" style="cursor: pointer;" title="Clique para agendar e gerenciar o próximo jogo">
                 <div class="ng-label"><i class="fa-solid fa-bell"></i> Próximo Baba</div>
-                <div class="ng-title">Sábado de Pelada</div>
+                <div class="ng-title" id="next-game-title">Sábado de Pelada</div>
                 <div class="ng-timer" id="next-game-timer">Calculando...</div>
             </div>
         </div>
@@ -67,23 +93,23 @@
     <!-- Main Area -->
     <main class="main-content">
         <!-- Top Header -->
-        <header class="top-header">
+        <!-- Top Header Compacto e Direto -->
+        <header class="top-header" style="align-items: center;">
             <div class="page-title">
-                <h1 id="main-header-title">FutSystem PRO <span style="font-size: 16px; color: var(--primary); font-weight: 600;">| Gestão do Baba</span></h1>
-                <p id="main-header-desc">Gerencie seus jogadores, sorteie times equilibrados sem briga e acompanhe cada gol em tempo real.</p>
+                <h1 id="main-header-title" style="font-size: 24px;">⚽ Meu Baba <span style="color: var(--primary); font-size: 14px; background: rgba(16,185,129,0.15); padding: 4px 10px; border-radius: 20px;">PRO</span></h1>
             </div>
             <div class="header-actions">
-                <button id="btn-supabase-status" class="btn" style="background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 13px; padding: 10px 14px;" onclick="openSupabaseModal()" title="Status da Nuvem Supabase">
-                    <i class="fa-solid fa-cloud"></i> <span id="supabase-status-txt">Conectando...</span>
+                <button id="btn-supabase-status" class="btn" style="background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 13px; font-weight: 700;" onclick="openSupabaseModal()">
+                    <i class="fa-solid fa-cloud"></i> <span id="supabase-status-txt">Online</span>
                 </button>
-                <button class="btn" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="clearAllSystemData()" title="Zerar Dados do Baba">
-                    <i class="fa-solid fa-trash"></i> Zerar Tudo
+                <button class="btn btn-secondary" onclick="openSystemOptionsModal()" title="Opções">
+                    <i class="fa-solid fa-gear"></i> Opções
                 </button>
-                <button class="btn btn-secondary" onclick="resetDemoData()" title="Restaurar Elenco Original">
-                    <i class="fa-solid fa-rotate-left"></i> Resetar Demo
+                <button class="btn" style="background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 700;" onclick="doLogout()" title="Sair do Sistema">
+                    🚪 Sair
                 </button>
-                <button class="btn btn-primary" onclick="openAddPlayerModal()">
-                    <i class="fa-solid fa-user-plus"></i> Novo Jogador
+                <button class="btn btn-primary" onclick="openAddPlayerModal()" style="font-weight: 800; font-size: 15px; padding: 12px 20px;">
+                    ➕ Novo Jogador
                 </button>
             </div>
         </header>
@@ -151,35 +177,93 @@
                         </div>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 14px;">
-                        <button class="btn btn-primary" style="width: 100%; padding: 16px; justify-content: flex-start;" onclick="switchTab('sorteio')">
-                            <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 18px;"></i>
-                            <div>
-                                <div style="font-weight: 800; text-align: left;">Sortear Times para Hoje</div>
-                                <div style="font-size: 11px; font-weight: 400; opacity: 0.8;">Algoritmo inteligente equilibrado por estrelas</div>
-                            </div>
+                        <button class="btn" style="width: 100%; padding: 18px; font-size: 16px; font-weight: 800; justify-content: center; background: #22c55e; color: #fff; box-shadow: 0 4px 15px rgba(34,197,94,0.3);" onclick="switchTab('agenda')">
+                            📅 MARCAR BABA & CONVITES WHATSAPP
+                        </button>
+
+                        <button class="btn btn-primary" style="width: 100%; padding: 18px; font-size: 16px; font-weight: 800; justify-content: center;" onclick="switchTab('sorteio')">
+                            🎲 SORTEAR TIMES AGORA
                         </button>
                         
-                        <button class="btn btn-gold" style="width: 100%; padding: 16px; justify-content: flex-start;" onclick="switchTab('match')">
-                            <i class="fa-solid fa-stopwatch" style="font-size: 18px;"></i>
-                            <div>
-                                <div style="font-weight: 800; text-align: left;">Abrir Placar ao Vivo</div>
-                                <div style="font-size: 11px; font-weight: 400; opacity: 0.8;">Cronômetro interativo com contagem de gols</div>
-                            </div>
+                        <button class="btn btn-gold" style="width: 100%; padding: 18px; font-size: 16px; font-weight: 800; justify-content: center;" onclick="switchTab('match')">
+                            ⏱️ ABRIR CRONÔMETRO E PLACAR
                         </button>
                         
-                        <button class="btn btn-secondary" style="width: 100%; padding: 16px; justify-content: flex-start;" onclick="switchTab('finance')">
-                            <i class="fa-solid fa-money-bill-transfer" style="font-size: 18px; color: var(--accent-cyan);"></i>
-                            <div>
-                                <div style="font-weight: 800; text-align: left;">Ver Caixinha & Inadimplentes</div>
-                                <div style="font-size: 11px; font-weight: 400; opacity: 0.8;">Controle quem pagou a mensalidade</div>
-                            </div>
+                        <button class="btn btn-secondary" style="width: 100%; padding: 18px; font-size: 16px; font-weight: 800; justify-content: center; background: rgba(6,182,212,0.15); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);" onclick="switchTab('finance')">
+                            💰 VER CAIXA E MENSALIDADES
                         </button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- VIEW 2: SORTEADOR DE TIMES -->
+        <!-- VIEW 2: AGENDA / MARCAR BABA -->
+        <section id="view-agenda" class="view-section">
+            <div class="dashboard-grid" style="margin-bottom: 24px;">
+                <!-- Container 1: Definições do Baba -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title" style="color: var(--primary);"><i class="fa-solid fa-calendar-plus"></i> Definir Próximo Baba</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Nome do Jogo / Edição:</label>
+                            <input type="text" id="ag-title" class="form-input" placeholder="Ex: Baba Oficial de Sábado">
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 130px;">
+                                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Dia do Baba:</label>
+                                <input type="date" id="ag-date" class="form-input">
+                            </div>
+                            <div style="flex: 1; min-width: 100px;">
+                                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Horário:</label>
+                                <input type="time" id="ag-time" class="form-input" value="16:00">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <div style="flex: 2; min-width: 150px;">
+                                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Local / Arena:</label>
+                                <input type="text" id="ag-loc" class="form-input" placeholder="Ex: Arena Society VIP">
+                            </div>
+                            <div style="flex: 1; min-width: 90px;">
+                                <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Valor (R$):</label>
+                                <input type="number" id="ag-price" class="form-input" value="20" placeholder="20.00">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 15px; font-weight: 800; margin-top: 6px; justify-content: center;" onclick="confirmFormAgenda()">
+                            ✅ Salvar e Ativar Contagem Regressiva
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Container 2: Envio para o Grupo -->
+                <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div class="panel-header">
+                            <div class="panel-title" style="color: #22c55e;"><i class="fa-brands fa-whatsapp"></i> Mensagem Oficial para o Grupo</div>
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Esta mensagem com todos os detalhes do jogo será aberta no seu WhatsApp pronta para enviar no grupo:</p>
+                        <div id="agenda-msg-preview" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px; margin-bottom: 16px;"></div>
+                    </div>
+                    <button class="btn" style="width: 100%; padding: 16px; background: #22c55e; color: #fff; font-size: 16px; font-weight: 800; justify-content: center; box-shadow: 0 4px 15px rgba(34,197,94,0.3);" onclick="sendGroupWhatsApp()">
+                        📲 ENVIAR NO GRUPO DO BABA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Container 3: Convites Individuais, Cobrança e Presença -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fa-solid fa-list-check"></i> Controle de Presença & Cobrança no WhatsApp (Individual)</div>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Confirme quem vai para o jogo (eles serão selecionados automaticamente na aba de Sorteio) ou cobre o valor com 1 clique:</p>
+                <div id="agenda-players-list">
+                    <!-- Renderizado via agenda.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: SORTEADOR DE TIMES -->
         <section id="view-sorteio" class="view-section">
             <div class="panel" style="margin-bottom: 24px;">
                 <div class="panel-header" style="margin-bottom: 0; border-bottom: none;">
@@ -196,6 +280,16 @@
                         </select>
                     </div>
                 </div>
+            </div>
+
+            <!-- Guia Rápido para Leigos -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <span style="font-weight: 800; color: var(--primary); font-size: 14px; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-info"></i> Passo a Passo:</span>
+                <span style="font-size: 13px; color: #fff;"><b>1️⃣</b> Escolha a quantidade de times acima</span>
+                <span style="color: var(--text-muted);">•</span>
+                <span style="font-size: 13px; color: #fff;"><b>2️⃣</b> Marque quem veio jogar hoje na lista</span>
+                <span style="color: var(--text-muted);">•</span>
+                <span style="font-size: 13px; color: #fff;"><b>3️⃣</b> Clique no botão verde de Sorteio!</span>
             </div>
 
             <div class="team-generator">
@@ -431,34 +525,34 @@
 <div id="modal-add-player" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">Cadastrar Novo Jogador</div>
+            <div class="modal-title">➕ Cadastrar Jogador no Baba</div>
             <button class="close-modal" onclick="closeAddPlayerModal()">&times;</button>
         </div>
         <div class="form-group">
-            <label class="form-label">Nome Completo</label>
+            <label class="form-label">Nome Completo do Jogador</label>
             <input type="text" id="inp-name" class="form-input" placeholder="Ex: Gabriel Barbosa">
         </div>
         <div class="form-group">
-            <label class="form-label">Apelido (Nome da Camisa)</label>
+            <label class="form-label">Apelido (Nome que vai na carta)</label>
             <input type="text" id="inp-nickname" class="form-input" placeholder="Ex: Gabigol">
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="form-group">
-                <label class="form-label">Posição</label>
+                <label class="form-label">Posição em Quadra</label>
                 <select id="inp-pos" class="form-select">
-                    <option value="GOL">Goleiro (GOL)</option>
-                    <option value="ZAG">Zagueiro (ZAG)</option>
-                    <option value="LAT">Lateral (LAT)</option>
-                    <option value="MEI" selected>Meia (MEI)</option>
-                    <option value="ATA">Atacante (ATA)</option>
+                    <option value="GOL">🧤 Goleiro (GOL)</option>
+                    <option value="ZAG">🛡️ Zagueiro (ZAG)</option>
+                    <option value="LAT">🏃 Lateral (LAT)</option>
+                    <option value="MEI" selected>🎯 Meia (MEI)</option>
+                    <option value="ATA">⚽ Atacante (ATA)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Nível (Estrelas)</label>
+                <label class="form-label">Nível Técnico (1 a 5 Estrelas)</label>
                 <select id="inp-stars" class="form-select">
-                    <option value="5">★★★★★ (5 - Craque)</option>
-                    <option value="4">★★★★☆ (4 - Muito Bom)</option>
-                    <option value="3" selected>★★★☆☆ (3 - Regular)</option>
+                    <option value="5">★★★★★ (5 - Craque do Time)</option>
+                    <option value="4">★★★★☆ (4 - Joga Muito)</option>
+                    <option value="3" selected>★★★☆☆ (3 - Nível Bom)</option>
                     <option value="2">★★☆☆☆ (2 - Esforçado)</option>
                     <option value="1">★☆☆☆☆ (1 - Pé de Rato)</option>
                 </select>
@@ -466,19 +560,24 @@
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="form-group">
-                <label class="form-label">Status Mensalidade</label>
+                <label class="form-label">Situação da Mensalidade</label>
                 <select id="inp-status" class="form-select">
-                    <option value="paid">Em Dia (Pago)</option>
-                    <option value="unpaid">Pendente</option>
+                    <option value="paid">🟢 Em Dia (Pago)</option>
+                    <option value="unpaid">🔴 Pendente / Devendo</option>
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">URL Foto / Avatar</label>
-                <input type="text" id="inp-avatar" class="form-input" placeholder="https://images.unsplash...">
+                <label class="form-label">Foto do Jogador (Opcional)</label>
+                <input type="text" id="inp-avatar" class="form-input" placeholder="Cole link ou escolha abaixo ⬇️">
+                <div style="display: flex; gap: 4px; margin-top: 6px;">
+                    <button type="button" class="btn btn-sm" style="flex:1; padding:4px; font-size:11px; background: rgba(255,255,255,0.06);" onclick="document.getElementById('inp-avatar').value='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'" title="Foto 1">🧑 Perfil 1</button>
+                    <button type="button" class="btn btn-sm" style="flex:1; padding:4px; font-size:11px; background: rgba(255,255,255,0.06);" onclick="document.getElementById('inp-avatar').value='https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'" title="Foto 2">🧔 Perfil 2</button>
+                    <button type="button" class="btn btn-sm" style="flex:1; padding:4px; font-size:11px; background: rgba(255,255,255,0.06);" onclick="document.getElementById('inp-avatar').value='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'" title="Foto 3">👱 Perfil 3</button>
+                </div>
             </div>
         </div>
-        <button class="btn btn-primary" style="width: 100%; padding: 14px; margin-top: 10px;" onclick="confirmAddPlayer()">
-            <i class="fa-solid fa-check"></i> Salvar Jogador
+        <button class="btn btn-primary" style="width: 100%; padding: 14px; margin-top: 10px; font-size: 16px; font-weight: 800;" onclick="confirmAddPlayer()">
+            <i class="fa-solid fa-check"></i> Salvar e Adicionar ao Elenco
         </button>
     </div>
 </div>
@@ -542,6 +641,7 @@
     <script src="js/liveMatch.js"></script>
     <script src="js/finance.js"></script>
     <script src="js/ranking.js"></script>
+    <script src="js/agenda.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

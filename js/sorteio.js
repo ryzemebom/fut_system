@@ -5,7 +5,12 @@ let generatedTeams = [];
 
 function initSorteio() {
     const players = getPlayers();
-    selectedPlayerIds = players.map(p => p.id); // Padrão: todos selecionados para facilidade
+    const confirmed = players.filter(p => p.confirmed);
+    if (confirmed.length > 0) {
+        selectedPlayerIds = confirmed.map(p => p.id);
+    } else {
+        selectedPlayerIds = players.map(p => p.id);
+    }
     renderPlayerSelector();
 }
 

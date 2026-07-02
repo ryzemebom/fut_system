@@ -1,6 +1,48 @@
 // Controlador Principal da Aplicação (FutSystem Pro)
 
+function checkAuthStatus() {
+    const logged = localStorage.getItem('fut_logged_user');
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+
+    if (logged === 'arthur') {
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (mainApp) mainApp.style.display = 'flex';
+    } else {
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (mainApp) mainApp.style.display = 'none';
+    }
+}
+
+function doLogin() {
+    const user = document.getElementById('login-user')?.value || '';
+    const pass = document.getElementById('login-pass')?.value || '';
+
+    if (user.trim().toLowerCase() === 'arthur' && pass === '1234') {
+        localStorage.setItem('fut_logged_user', 'arthur');
+        checkAuthStatus();
+        if (typeof showToast === 'function') showToast("🎉 Bem-vindo de volta, Arthur!", "success");
+    } else {
+        if (typeof showToast === 'function') showToast("❌ Usuário ou senha incorretos!", "error");
+        const card = document.querySelector('.login-card');
+        if (card) {
+            card.style.transform = 'scale(0.96)';
+            setTimeout(() => card.style.transform = 'scale(1)', 150);
+        }
+    }
+}
+
+function doLogout() {
+    if (confirm("Deseja sair do sistema e trancar a tela?")) {
+        localStorage.removeItem('fut_logged_user');
+        checkAuthStatus();
+        if (typeof showToast === 'function') showToast("🔒 Sessão encerrada com segurança.", "info");
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    checkAuthStatus();
+
     // Inicializa dados do localStorage e dispara sync no Supabase
     getPlayers(true);
     getTransactions();
@@ -144,6 +186,8 @@ function switchTab(tabId) {
         if (typeof renderFinance === 'function') renderFinance();
     } else if (tabId === 'ranking') {
         if (typeof renderRanking === 'function') renderRanking('GOALS');
+    } else if (tabId === 'agenda') {
+        if (typeof renderAgenda === 'function') renderAgenda();
     }
 }
 
@@ -211,42 +255,71 @@ function updateDashboardStats() {
 }
 
 function initNextGameTimer() {
-    const now = new Date();
+    const cfg = typeof getAgendaConfig === 'function' ? getAgendaConfig() : null;
     let nextGame = new Date();
-    nextGame.setDate(now.getDate() + ((6 - now.getDay() + 7) % 7 || 7));
-    nextGame.setHours(16, 0, 0, 0);
-    
-    if (now > nextGame) {
-        nextGame.setDate(nextGame.getDate() + 7);
+
+    if (cfg && cfg.date && cfg.time) {
+        const [year, month, day] = cfg.date.split('-').map(Number);
+        const [hours, mins] = cfg.time.split(':').map(Number);
+        nextGame = new Date(year, month - 1, day, hours || 16, mins || 0, 0);
+    } else {
+        const now = new Date();
+        nextGame.setDate(now.getDate() + ((6 - now.getDay() + 7) % 7 || 7));
+        nextGame.setHours(16, 0, 0, 0);
+        if (now > nextGame) nextGame.setDate(nextGame.getDate() + 7);
     }
-    
+
+    const elTitle = document.getElementById('next-game-title');
+    if (elTitle && cfg) {
+        const dateFormatted = typeof formatDateBr === 'function' ? formatDateBr(cfg.date) : cfg.date;
+        elTitle.innerText = `${cfg.title || 'Baba'} (${dateFormatted} • ${cfg.time})`;
+    }
+
     function updateCountdown() {
         const diff = nextGame - new Date();
+        const el = document.getElementById('next-game-timer');
+        if (!el) return;
+
         if (diff <= 0) {
-            const el = document.getElementById('next-game-timer');
-            if (el) el.innerText = "⚡ O BABA COMEÇOU!";
+            el.innerText = "⚡ O BABA É HOJE/AGORA!";
             return;
         }
-        
+
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        
-        const el = document.getElementById('next-game-timer');
-        if (el) el.innerText = `${days}d ${hours}h ${mins}m restantes`;
+
+        el.innerText = `${days}d ${hours}h ${mins}m restantes`;
     }
-    
+
     updateCountdown();
-    setInterval(updateCountdown, 60000);
+    if (window.nextGameInterval) clearInterval(window.nextGameInterval);
+    window.nextGameInterval = setInterval(updateCountdown, 30000);
 }
 
 // Modal de Novo Jogador
+// Modal de Novo Jogador / Edição
 function openAddPlayerModal() {
+    window.editingPlayerId = null;
     const modal = document.getElementById('modal-add-player');
+    const titleEl = modal?.querySelector('.modal-title');
+    const btnSubmit = modal?.querySelector('.btn-primary');
+
+    if (titleEl) titleEl.innerHTML = `➕ Cadastrar Jogador no Baba`;
+    if (btnSubmit) btnSubmit.innerHTML = `<i class="fa-solid fa-check"></i> Salvar e Adicionar ao Elenco`;
+
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-nickname').value = '';
+    document.getElementById('inp-avatar').value = '';
+    document.getElementById('inp-pos').value = 'MEI';
+    document.getElementById('inp-stars').value = '3';
+    document.getElementById('inp-status').value = 'paid';
+
     if (modal) modal.classList.add('active');
 }
 
 function closeAddPlayerModal() {
+    window.editingPlayerId = null;
     const modal = document.getElementById('modal-add-player');
     if (modal) modal.classList.remove('active');
 }
@@ -258,26 +331,28 @@ function confirmAddPlayer() {
     const stars = document.getElementById('inp-stars').value;
     const status = document.getElementById('inp-status').value;
     const avatar = document.getElementById('inp-avatar').value;
-    
+
     if (!name) {
         showToast("Digite o nome completo do jogador!", "error");
         return;
     }
-    
-    addPlayer({ name, nickname, pos, stars, status, avatar });
+
+    if (window.editingPlayerId !== null && window.editingPlayerId !== undefined) {
+        updatePlayer(window.editingPlayerId, { name, nickname, pos, stars, status, avatar });
+        showToast(`✏️ Jogador ${nickname} atualizado com sucesso!`, 'success');
+        window.editingPlayerId = null;
+    } else {
+        addPlayer({ name, nickname, pos, stars, status, avatar });
+        showToast(`🎉 Jogador ${nickname} cadastrado com sucesso!`, 'success');
+    }
+
     closeAddPlayerModal();
-    
-    // Limpa campos
-    document.getElementById('inp-name').value = '';
-    document.getElementById('inp-nickname').value = '';
-    document.getElementById('inp-avatar').value = '';
-    
+
     if (document.getElementById('view-players')?.classList.contains('active')) {
         renderPlayersGrid();
     } else {
         switchTab('players');
     }
-    showToast(`🎉 Jogador ${nickname} cadastrado com sucesso!`, 'success');
 }
 
 // Limpeza e Restauração de Dados
@@ -310,4 +385,59 @@ function clearAllSystemData() {
         showToast("Sistema zerado com sucesso!", "success");
         setTimeout(() => location.reload(), 600);
     }
+}
+
+/**
+ * Abre modal simplificado de opções para usuários leigos
+ */
+function openSystemOptionsModal() {
+    let modal = document.getElementById('modal-system-options');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-system-options';
+        modal.className = 'modal-overlay';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">⚙️ Opções e Ajustes do Sistema</div>
+                <button class="close-modal" onclick="document.getElementById('modal-system-options').classList.remove('active')">&times;</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 800; color: #ef4444; font-size: 15px;">🗑️ Começar Meu Baba do Zero</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Apaga os jogadores fictícios de exemplo para você cadastrar os seus amigos reais.</div>
+                    </div>
+                    <button class="btn" style="background: #ef4444; color: #fff; font-weight: 700; align-self: flex-start;" onclick="document.getElementById('modal-system-options').classList.remove('active'); clearAllSystemData();">
+                        Zerar e Cadastrar Meus Amigos
+                    </button>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 800; color: #fff; font-size: 15px;">🔄 Restaurar Exemplo (Demonstração)</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Recarrega os 14 jogadores fictícios para você testar sorteio, placar e artilharia.</div>
+                    </div>
+                    <button class="btn btn-secondary" style="align-self: flex-start;" onclick="document.getElementById('modal-system-options').classList.remove('active'); resetDemoData();">
+                        Restaurar Jogadores de Teste
+                    </button>
+                </div>
+
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 800; color: var(--primary); font-size: 15px;">☁️ Status do Salvamento na Nuvem</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Verifique a conexão automática ou copie o script do banco de dados.</div>
+                    </div>
+                    <button class="btn" style="background: rgba(16, 185, 129, 0.2); color: var(--primary); font-weight: 700; align-self: flex-start;" onclick="document.getElementById('modal-system-options').classList.remove('active'); openSupabaseModal();">
+                        Ver Detalhes do Banco
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
 }

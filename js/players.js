@@ -135,6 +135,66 @@ function deletePlayer(id) {
 }
 
 /**
+ * Atualiza dados de um jogador existente.
+ */
+function updatePlayer(id, updatedData) {
+    const list = getPlayers();
+    const index = list.findIndex(p => p.id === id);
+    if (index === -1) return;
+
+    list[index] = {
+        ...list[index],
+        name: updatedData.name || list[index].name,
+        nickname: updatedData.nickname || updatedData.name || list[index].nickname,
+        pos: updatedData.pos || list[index].pos,
+        stars: parseInt(updatedData.stars) || list[index].stars,
+        status: updatedData.status || list[index].status,
+        avatar: updatedData.avatar || list[index].avatar
+    };
+
+    saveLocalPlayers(list);
+
+    if (window.supabaseClient) {
+        window.supabaseClient.from('players').update({
+            name: list[index].name,
+            nickname: list[index].nickname,
+            pos: list[index].pos,
+            stars: list[index].stars,
+            status: list[index].status,
+            avatar: list[index].avatar
+        }).eq('id', id).then(({ error }) => {
+            if (error) console.error("Erro no Supabase ao atualizar jogador:", error.message);
+        });
+    }
+}
+
+/**
+ * Abre o modal preenchido para edição do jogador.
+ */
+function openEditPlayerModal(id) {
+    const p = getPlayerById(id);
+    if (!p) return;
+
+    window.editingPlayerId = id;
+
+    const modal = document.getElementById('modal-add-player');
+    const titleEl = modal?.querySelector('.modal-title');
+    const btnSubmit = modal?.querySelector('.btn-primary');
+
+    if (titleEl) titleEl.innerHTML = `✏️ Editar Jogador: <b>${p.nickname}</b>`;
+    if (btnSubmit) btnSubmit.innerHTML = `<i class="fa-solid fa-check"></i> Salvar Alterações`;
+
+    document.getElementById('inp-name').value = p.name || '';
+    document.getElementById('inp-nickname').value = p.nickname || '';
+    document.getElementById('inp-pos').value = p.pos || 'MEI';
+    document.getElementById('inp-stars').value = p.stars || 3;
+    document.getElementById('inp-status').value = p.status || 'paid';
+    document.getElementById('inp-avatar').value = p.avatar || '';
+
+    if (modal) modal.classList.add('active');
+}
+
+/**
  * Modal de jogador.
  */
 function openPlayerModal(id) {
@@ -211,9 +271,14 @@ function renderPlayersGrid(filterPos = "ALL", searchQuery = "") {
 
         return `
             <div class="fut-card" style="position: relative;">
-                <button class="btn" style="position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.6); color: #ef4444; width: 28px; height: 28px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);" onclick="event.stopPropagation(); deletePlayer(${p.id})" title="Excluir Jogador">
-                    <i class="fa-solid fa-trash" style="font-size: 11px;"></i>
-                </button>
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 6px;">
+                    <button class="btn" style="background: rgba(0,0,0,0.75); color: #38bdf8; width: 30px; height: 30px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(56,189,248,0.3);" onclick="event.stopPropagation(); openEditPlayerModal(${p.id})" title="Editar Jogador">
+                        <i class="fa-solid fa-pen" style="font-size: 12px;"></i>
+                    </button>
+                    <button class="btn" style="background: rgba(0,0,0,0.75); color: #ef4444; width: 30px; height: 30px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(239,68,68,0.3);" onclick="event.stopPropagation(); deletePlayer(${p.id})" title="Excluir Jogador">
+                        <i class="fa-solid fa-trash" style="font-size: 12px;"></i>
+                    </button>
+                </div>
                 <div class="player-status-badge ${statusClass}" title="${statusTitle}"></div>
                 <div class="fut-top">
                     <div class="fut-rating">${p.stars * 18 + 10}</div>

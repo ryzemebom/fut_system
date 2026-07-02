@@ -8,19 +8,26 @@ const INITIAL_TRANSACTIONS = [
     { id: 5, date: "2026-06-28", desc: "Caixa Confraternização / Churrasco pós-jogo", type: "OUT", val: 150.00 }
 ];
 
+let cachedTransactions = null;
+
 function getTransactions() {
+    if (cachedTransactions !== null) return cachedTransactions;
+    
     const data = localStorage.getItem('fut_transactions');
     if (data) {
-        try { return JSON.parse(data); } catch(e) { return [...INITIAL_TRANSACTIONS]; }
+        try { cachedTransactions = JSON.parse(data); return cachedTransactions; } catch(e) { cachedTransactions = [...INITIAL_TRANSACTIONS]; }
     }
     if (!localStorage.getItem('fut_demo_cleared')) {
-        localStorage.setItem('fut_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
-        return [...INITIAL_TRANSACTIONS];
+        cachedTransactions = [...INITIAL_TRANSACTIONS];
+        localStorage.setItem('fut_transactions', JSON.stringify(cachedTransactions));
+        return cachedTransactions;
     }
-    return [];
+    cachedTransactions = [];
+    return cachedTransactions;
 }
 
 function saveTransactions(list) {
+    cachedTransactions = list;
     localStorage.setItem('fut_transactions', JSON.stringify(list));
     renderFinance();
     if (typeof updateDashboardStats === 'function') {
@@ -33,6 +40,7 @@ async function loadTransactionsFromSupabase() {
     try {
         const { data, error } = await window.supabaseClient.from('transactions').select('*');
         if (!error && data && data.length > 0) {
+            cachedTransactions = data;
             localStorage.setItem('fut_transactions', JSON.stringify(data));
             renderFinance();
             if (typeof updateDashboardStats === 'function') updateDashboardStats();
@@ -149,8 +157,8 @@ function renderFinance() {
                             <div style="font-size: 11px; color: var(--accent-red);">Mensalidade Pendente</div>
                         </div>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick="quitarMensalidade(${p.id})">
-                        Quitar R$ 50,00
+                    <button class="btn btn-sm btn-primary" style="font-weight: 800; padding: 8px 14px;" onclick="quitarMensalidade(${p.id})">
+                        ✅ Receber R$ 50,00
                     </button>
                 </div>
             `).join('');

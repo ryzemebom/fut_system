@@ -114,15 +114,20 @@ function triggerGoalModal(side) {
     
     if (title) title.innerText = `⚽ Gol para ${team.name}`;
     
+    const allPlayers = typeof getPlayers === 'function' ? getPlayers() : [];
+    const teamPlayerIds = team.players.map(p => p.id);
+    const otherPlayers = allPlayers.filter(p => !teamPlayerIds.includes(p.id));
+    const combined = [...team.players, ...otherPlayers];
+
     if (scorerSelect) {
-        scorerSelect.innerHTML = team.players.map(p => `<option value="${p.id}">${p.nickname} (${p.pos})</option>`).join('');
+        scorerSelect.innerHTML = combined.map(p => `<option value="${p.id}">${p.nickname} (${p.pos}) ${teamPlayerIds.includes(p.id) ? '★' : ''}</option>`).join('');
     }
-    
+
     if (assistSelect) {
-        assistSelect.innerHTML = `<option value="0">Sem Assistência (Jogada individual / Rebote)</option>` +
-            team.players.map(p => `<option value="${p.id}">${p.nickname}</option>`).join('');
+        assistSelect.innerHTML = `<option value="0">Sem Assistência (Individual / Rebote)</option>` +
+            combined.map(p => `<option value="${p.id}">${p.nickname} (${p.pos})</option>`).join('');
     }
-    
+
     if (modal) modal.classList.add('active');
 }
 
